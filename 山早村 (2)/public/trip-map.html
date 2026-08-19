@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>永嘉山早村·溯溪桨板2日营 · 行程地图（成员视图）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root{ --sky:#0ea5e9; --teal:#14b8a6; --ink:#0f172a; --muted:#64748b; --glass:rgba(255,255,255,.82); --shadow:0 8px 30px rgba(15,23,42,.12); }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:"Inter","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:var(--ink);background:#dfeaf2;overflow:hidden;}
+  #map{position:absolute;inset:0;z-index:1;background:#e8eef3;}
+  .leaflet-top.leaflet-right{z-index:500;}
+  .topbar{position:absolute;top:16px;left:16px;right:16px;z-index:600;display:flex;align-items:center;justify-content:space-between;
+    background:var(--glass);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.6);border-radius:16px;box-shadow:var(--shadow);padding:12px 16px;}
+  .topbar .t1{font-size:15px;font-weight:800;}
+  .topbar .t2{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px;}
+  .topbar .stats{display:flex;gap:6px;}
+  .chip{font-size:11px;color:var(--muted);background:rgba(255,255,255,.7);border:1px solid rgba(15,23,42,.08);border-radius:999px;padding:3px 9px;font-weight:600;}
+  .chip b{color:var(--ink);}
+  .legend{position:absolute;bottom:22px;right:16px;z-index:550;background:var(--glass);backdrop-filter:blur(12px);border:1px solid rgba(15,23,42,.08);
+    border-radius:12px;padding:9px 12px;font-size:11px;color:var(--muted);box-shadow:var(--shadow);line-height:1.7;}
+  .legend b{color:var(--ink);}
+  .legend .ln{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px;}
+  .mk{width:34px;height:34px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 3px 10px rgba(15,23,42,.35);}
+  .leaflet-popup-content-wrapper{border-radius:16px;box-shadow:0 18px 50px rgba(15,23,42,.22);padding:0;overflow:hidden;}
+  .leaflet-popup-content{margin:0;width:250px!important;}
+  .iw-card{font-family:"Inter","PingFang SC",sans-serif;}
+  .iw-head{display:flex;align-items:center;gap:10px;padding:13px 14px 10px;}
+  .iw-num{width:26px;height:26px;border-radius:50%;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;}
+  .iw-name{font-size:15px;font-weight:800;line-height:1.2;}
+  .iw-sub{font-size:11.5px;color:var(--muted);font-weight:600;}
+  .iw-body{padding:0 14px 13px;}
+  .iw-badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;margin-bottom:8px;}
+  .iw-desc{font-size:12.5px;line-height:1.6;color:#334155;margin:0 0 6px;}
+  .iw-tip{font-size:11.5px;line-height:1.55;color:var(--teal);font-weight:600;margin:0;}
+  #groupSwitch{display:flex;gap:6px;background:rgba(255,255,255,.7);border:1px solid rgba(15,23,42,.08);border-radius:12px;padding:4px;}
+  #groupSwitch .gs-btn{font-size:12px;font-weight:800;color:var(--muted);cursor:pointer;border:none;background:transparent;border-radius:9px;padding:6px 12px;transition:.15s;}
+  #groupSwitch .gs-btn:hover{color:var(--ink);}
+  #groupSwitch .gs-btn.active{color:#fff;background:linear-gradient(135deg,#0ea5e9,#14b8a6);}
+  @media (max-width:820px){ .legend{display:none;} .topbar{flex-direction:column;align-items:flex-start;gap:6px;} }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="topbar">
+  <div>
+    <div class="t1" id="title">永嘉山早村 · 溯溪桨板2日营</div>
+    <div class="t2" id="sub">新线首发 · 玻璃水溯溪 · 10km桨板漂流 · 夜宿700年林坑古村</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="stats" id="stats"></div>
+    <div id="groupSwitch">
+      <button class="gs-btn active" data-group="1">一团</button>
+      <button class="gs-btn" data-group="2">二团</button>
+    </div>
+  </div>
+</div>
+<div class="legend">
+  <div><span class="ln" style="background:#0ea5e9"></span><b>D1</b> 上海→山早村→林坑</div>
+  <div><span class="ln" style="background:#14b8a6"></span><b>D2</b> 林坑→楠溪江→上海</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const TYPES = {
+  start:{label:'集合出发',color:'#0ea5e9',icon:'🚌'}, pickup:{label:'接人',color:'#64748b',icon:'🚏'},
+  rest:{label:'休整',color:'#94a3b8',icon:'☕'}, stream:{label:'溯溪',color:'#06b6d4',icon:'💧'},
+  stay:{label:'住宿',color:'#f59e0b',icon:'🏡'}, paddle:{label:'桨板漂流',color:'#14b8a6',icon:'🛶'},
+  ret:{label:'返程',color:'#64748b',icon:'↩'}, end:{label:'抵达',color:'#0ea5e9',icon:'🏁'},
+};
+const nodeDays = n => n.days || [n.day];
+
+let map, groups = {}, currentGroup = '1', overlays = [];
+function clearOverlays(){ overlays.forEach(o => map.removeLayer(o)); overlays = []; }
+
+function drawGroup(g){
+  const gr = groups[g]; if (!gr) return;
+  currentGroup = g;
+  clearOverlays();
+  document.getElementById('title').textContent = gr.title || '行程地图';
+  document.getElementById('sub').textContent = gr.subtitle || '';
+  const st = gr.stats || {};
+  document.getElementById('stats').innerHTML = [
+    st.days?`<span class="chip"><b>${st.days}</b>天</span>`:'',
+    st.nodeCount?`<span class="chip"><b>${st.nodeCount}</b>节点</span>`:'',
+    st.groupSize?`<span class="chip"><b>${st.groupSize}</b></span>`:'',
+  ].join('');
+  const nodes = gr.nodes || [];
+  ['D1','D2'].forEach(day=>{
+    const pts = nodes.filter(n=>nodeDays(n).includes(day)).map(n=>n.coord);
+    overlays.push(L.polyline(pts,{color:day==='D1'?'#0ea5e9':'#14b8a6',weight:6,opacity:.92,lineCap:'round',lineJoin:'round'}).addTo(map));
+  });
+  nodes.forEach((n,i)=>{
+    const t = TYPES[n.type];
+    const m = L.marker(n.coord,{icon:L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,17],popupAnchor:[0,-18],html:`<div class="mk" style="background:${t.color}">${i+1}</div>`})});
+    m.bindPopup(`<div class="iw-card"><div class="iw-head"><span class="iw-num" style="background:${t.color}">${i+1}</span><div><div class="iw-name">${n.name}</div><div class="iw-sub">${nodeDays(n)[0]} · ${n.time}</div></div></div><div class="iw-body"><span class="iw-badge" style="background:${t.color}1a;color:${t.color}">${t.icon} ${t.label}</span><div class="iw-desc">${n.desc||''}</div>${n.tip?`<div class="iw-tip">${n.tip}</div>`:''}</div></div>`);
+    m.addTo(map); overlays.push(m);
+  });
+  if(nodes.length) map.fitBounds(L.latLngBounds(nodes.map(n=>n.coord)),{padding:[70,70],maxZoom:13});
+}
+
+function init(){
+  if (typeof L === 'undefined'){ document.getElementById('map').innerHTML='<div style="padding:40px;color:#64748b;">地图库加载失败，请检查网络。</div>'; return; }
+  const road = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',{subdomains:'1234',maxZoom:18,attribution:'© 高德地图'});
+  map = L.map('map',{center:[29.5,120.9],zoom:8,zoomControl:true,layers:[road]});
+  fetch('/api/nodes').then(r=>r.json()).then(data=>{
+    groups = data.groups || {};
+    if (!groups[currentGroup]) currentGroup = Object.keys(groups)[0] || '1';
+    syncSwitch();
+    drawGroup(currentGroup);
+  }).catch(()=>{ document.getElementById('map').innerHTML='<div style="padding:40px;color:#64748b;">行程数据加载失败，请确认服务运行正常。</div>'; });
+}
+
+function syncSwitch(){
+  document.querySelectorAll('#groupSwitch .gs-btn').forEach(b => b.classList.toggle('active', b.dataset.group === currentGroup));
+}
+document.querySelectorAll('#groupSwitch .gs-btn').forEach(b => {
+  b.addEventListener('click', () => { if (b.dataset.group === currentGroup) return; drawGroup(b.dataset.group); syncSwitch(); });
+});
+
+init();
+</script>
+</body>
+</html>
